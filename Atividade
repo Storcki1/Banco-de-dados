@@ -1,0 +1,132 @@
+-- Script SQL: Sistema de CRM Empresarial
+-- Grupo: [Jean Storch Santos e Efraim Lima Marvão]
+
+
+CREATE DATABASE IF NOT EXISTS crm_empresa;
+USE crm_empresa;
+
+-- Clientes
+CREATE TABLE Cliente (
+    cliente_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    telefone VARCHAR(20),
+    empresa VARCHAR(100)
+);
+
+-- Funcionários
+CREATE TABLE Funcionario (
+    funcionario_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    cargo VARCHAR(50),
+    departamento VARCHAR(50)
+);
+
+-- Atendimentos (interações)
+CREATE TABLE Atendimento (
+    atendimento_id INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id INT,
+    data_atendimento DATE,
+    descricao TEXT,
+    status VARCHAR(30),
+    FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id) ON DELETE CASCADE
+);
+
+-- Tabela de junção: muitos-para-muitos entre Atendimentos e Funcionários
+CREATE TABLE Funcionario_Atendimento (
+    atendimento_id INT,
+    funcionario_id INT,
+    PRIMARY KEY (atendimento_id, funcionario_id),
+    FOREIGN KEY (atendimento_id) REFERENCES Atendimento(atendimento_id) ON DELETE CASCADE,
+    FOREIGN KEY (funcionario_id) REFERENCES Funcionario(funcionario_id) ON DELETE CASCADE
+);
+
+-- 3. Inserir dados fictícios
+
+-- Clientes
+INSERT INTO Cliente (nome, email, telefone, empresa) VALUES
+('Alice Silva', 'alice@cliente.com', '11999998888', 'TechCorp'),
+('Bruno Souza', 'bruno@cliente.com', '11988887777', 'HealthCo'),
+('Carla Dias', 'carla@cliente.com', '11977776666', 'EduPlus'),
+('Daniel Costa', 'daniel@cliente.com', '11966665555', 'BuildSmart'),
+('Eduarda Lima', 'eduarda@cliente.com', '11955554444', 'AgroMax');
+
+-- Funcionários
+INSERT INTO Funcionario (nome, cargo, departamento) VALUES
+('Fernanda Alves', 'Vendedora', 'Vendas'),
+('João Martins', 'Suporte Técnico', 'Suporte'),
+('Patrícia Mendes', 'Gerente de Contas', 'Relacionamento'),
+('Ricardo Torres', 'Analista CRM', 'Marketing'),
+('Tatiane Ramos', 'Consultora', 'Consultoria');
+
+-- Atendimentos
+INSERT INTO Atendimento (cliente_id, data_atendimento, descricao, status) VALUES
+(1, '2025-09-01', 'Demonstração do produto realizada via Zoom.', 'Concluído'),
+(2, '2025-09-02', 'Cliente relatou problema na integração.', 'Pendente'),
+(3, '2025-09-03', 'Negociação de plano corporativo.', 'Em Andamento'),
+(4, '2025-09-05', 'Reunião para entendimento de necessidades.', 'Concluído'),
+(5, '2025-09-06', 'Solicitação de proposta comercial.', 'Em Andamento'),
+(1, '2025-09-07', 'Suporte para onboarding do sistema.', 'Concluído');
+
+-- Relacionamentos Funcionário/Atendimento
+INSERT INTO Funcionario_Atendimento (atendimento_id, funcionario_id) VALUES
+(1, 1),
+(1, 3),
+(2, 2),
+(3, 1),
+(3, 5),
+(4, 4),
+(5, 1),
+(5, 3),
+(6, 2),
+(6, 5);
+
+-- 4. Operações CRUD
+
+-- --- CREATE ---
+-- Novo cliente
+INSERT INTO Cliente (nome, email, telefone, empresa)
+VALUES ('Fábio Nunes', 'fabio@cliente.com', '11944443333', 'LogiPack');
+
+-- Novo atendimento com vínculo a funcionário
+INSERT INTO Atendimento (cliente_id, data_atendimento, descricao, status)
+VALUES (6, '2025-09-10', 'Primeiro contato com a empresa.', 'Em Andamento');
+
+INSERT INTO Funcionario_Atendimento (atendimento_id, funcionario_id)
+VALUES (7, 3);
+
+-- --- READ ---
+-- Listar todos os atendimentos com nome do cliente e funcionários envolvidos
+SELECT A.atendimento_id, C.nome AS cliente, A.data_atendimento, A.status,
+       GROUP_CONCAT(F.nome SEPARATOR ', ') AS funcionarios
+FROM Atendimento A
+JOIN Cliente C ON A.cliente_id = C.cliente_id
+JOIN Funcionario_Atendimento FA ON A.atendimento_id = FA.atendimento_id
+JOIN Funcionario F ON F.funcionario_id = FA.funcionario_id
+GROUP BY A.atendimento_id, C.nome, A.data_atendimento, A.status;
+
+-- Listar todos os atendimentos de um cliente específico
+SELECT A.atendimento_id, A.descricao, A.status, A.data_atendimento
+FROM Atendimento A
+JOIN Cliente C ON A.cliente_id = C.cliente_id
+WHERE C.nome = 'Alice Silva';
+
+-- --- UPDATE ---
+-- Atualizar o status de um atendimento
+UPDATE Atendimento
+SET status = 'Concluído'
+WHERE atendimento_id = 3;
+
+-- Alterar o departamento de um funcionário
+UPDATE Funcionario
+SET departamento = 'Pós-Venda'
+WHERE nome = 'Fernanda Alves';
+
+-- --- DELETE ---
+-- Remover um atendimento (e seus vínculos com funcionários)
+DELETE FROM Atendimento
+WHERE atendimento_id = 2;
+
+-- Remover cliente e seus atendimentos
+DELETE FROM Cliente
+WHERE nome = 'Eduarda Lima';
